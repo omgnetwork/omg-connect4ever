@@ -11,7 +11,7 @@ const Home = ({ history }) => {
       <p>*Note you must have MetaMask installed to play.</p>
       <Button
         style={{ marginTop: '20px' }}
-        onClick={() => history.push('/game')}
+        onClick={() => history.push('/game/new')}
       >
         New Game
       </Button>

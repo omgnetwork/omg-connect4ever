@@ -3,7 +3,7 @@ import { BrowserRouter, Switch, Route } from 'react-router-dom';
 
 import Home from 'containers/home/Home';
 import Game from 'containers/game/Game';
-import Private from 'containers/private/Private';
+import NotFound from 'containers/notfound/NotFound';
 
 const Router = () => {
   return (
@@ -15,13 +15,11 @@ const Router = () => {
           component={Home}
         />
         <Route
-          path='/game/:id'
+          path='/game/:address'
           component={Game}
         />
         <Route
-          exact
-          path='/private-game'
-          component={Private}
+          component={NotFound}
         />
       </Switch>
     </BrowserRouter>
