@@ -1,0 +1,13 @@
+@import 'index.scss';
+
+.Button {
+  padding: 20px;
+  background-color: $primary;
+  color: $white;
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 100px;
+  cursor: pointer;
+}
