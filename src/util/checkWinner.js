@@ -74,11 +74,10 @@ const checkWinner = (board, color) => {
 
       const cellCoin = board[`col${col - colCounter}`][row];
       colCounter++;
-      if (cellCoin === 0) {
-        counter = 0;
-      }
       if (cellCoin === color) {
         counter++
+      } else {
+        counter = 0;
       }
       if (counter === 4) {
         console.log('left-diagonal win');

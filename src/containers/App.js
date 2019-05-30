@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
 
+import network from 'util/network';
 import Loading from 'containers/loading/Loading';
+import NoMetaMask from 'containers/nometamask/NoMetaMask';
 import Router from 'containers/Router';
 
 const App = () => {
   const [ loading, setLoading ] = useState(true);
+  const [ metaMask, setMetaMask ] = useState(false);
 
   useEffect(() => {
-    // TODO: app boot checking, check metamask installed?
-    setTimeout(() => {
-      setLoading(false)
-    }, 1000);
+    if (!!network.web3) {
+      setMetaMask(true);
+    }
+    setLoading(false)
   }, []);
 
-  return loading
-    ? <Loading />
-    : <Router />
+  if (!loading && metaMask) return <Router />;
+  if (!loading && !metaMask) return <NoMetaMask />;
+  return <Loading />;
 }
 
 export default App;

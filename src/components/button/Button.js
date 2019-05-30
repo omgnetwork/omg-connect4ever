@@ -2,11 +2,19 @@ import React from 'react';
 
 import * as styles from './Button.module.scss';
 
-const Button = ({ children, onClick, style }) => {
+const Button = ({
+  children,
+  onClick,
+  style,
+  disabled
+}) => {
   return (
     <div
       onClick={onClick}
-      className={styles.Button}
+      className={[
+        styles.Button,
+        disabled ? styles.disabled : ''
+      ].join(' ')}
       style={style}
     >
       { children }

@@ -7,3 +7,34 @@
   align-items: center;
   flex-direction: column;
 }
+
+.depositRow {
+  display: flex;
+  flex-direction: row;
+  margin-top: 20px;
+  background-color: lightgray;
+  padding: 40px;
+  min-width: 900px;
+
+  .left {
+    flex: 1 1 0;
+    margin-right: 40px;
+  }
+  .right {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+}
+
+.balance {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.msg {
+  margin-top: 20px;
+  color: $primary;
+}

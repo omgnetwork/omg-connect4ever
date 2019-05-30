@@ -43,14 +43,19 @@ const Game = ({ history, match: { params } }) => {
   const [ transactions, setTransactions ] = useState(DUMMY_TRANSACTIONS);
 
   useEffect(() => {
-    if (address === 'new') {
-      console.log('create new game address...');
-    } else {
-      getTransactions();
-      const interval = setInterval(getTransactions, POLLING_INTERVAL);
-      return () => clearInterval(interval);
-    }
-  }, [address]);
+    getTransactions();
+    const interval = setInterval(getTransactions, POLLING_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getTransactions = async () => {
+    console.log('fetching transactions...');
+    
+
+    // fetch real transactions using game address and set in game state
+    // setTransactions(_transactions);
+  }
+
 
   const dropCoin = (col) => {
     const currentBoardState = transactions.map(i => i.meta)[transactions.length - 1];
@@ -67,9 +72,10 @@ const Game = ({ history, match: { params } }) => {
     // check if move creates win state
     const isWinner = checkWinner(newBoardState, 'R');
     if (isWinner) {
-      console.log('you won the game!');
       // if it does, make win transaction. display message
+      console.log('you won the game!');
     } else {
+      // if it does not, make move transaction. display message
       console.log('no winner... making transaction...');
       setTransactions([
         ...transactions,
@@ -78,14 +84,7 @@ const Game = ({ history, match: { params } }) => {
           meta: newBoardState
         }
       ]);
-      // if it does not, make move transaction. display message
     }
-  }
-
-  const getTransactions = async () => {
-    // fetch real transactions using game address and set in game state
-    console.log('fetching transactions...');
-    // setTransactions(_transactions);
   }
 
   return (
