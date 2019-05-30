@@ -1,6 +1,7 @@
 import erc20abi from 'human-standard-token-abi';
 import { transaction } from '@omisego/omg-js-util';
 import numberToBN from 'number-to-bn';
+import BigNumber from 'big-number';
 
 export const deposit = async (web3, from, value, rootChain) => {
   const depositTx = transaction.encodeDeposit(from, value, transaction.ETH_CURRENCY)
@@ -27,14 +28,12 @@ export const getAccounts = async (web3) => {
   }));
 };
 
-export const getUtxos = async (childChain, account) => {
-  return childChain.getUtxos(account.address)
+export const getUtxos = async (childChain, address) => {
+  return childChain.getUtxos(address);
 };
 
-export const getTransactions = async (childChain, account) => {
-  return childChain.getTransactions({
-    address: account.address
-  });
+export const getTransactions = async (childChain, address) => {
+  return childChain.getTransactions({ address });
 };
 
 export const getBalances = async (childChain, account, web3) => {
@@ -60,14 +59,21 @@ export const getBalances = async (childChain, account, web3) => {
   return account;
 }
 
-export const transfer = async (web3, childChain, from, to, amount, currency, contract) => {
-  const transferZeroFee = currency !== transaction.ETH_CURRENCY
+export const selectUtxos = (utxos, amount, currency) => {
+  const correctCurrency = utxos.filter(utxo => utxo.currency === currency)
+  // Just find the first utxo that can fulfill the amount
+  const selected = correctCurrency.find(utxo => BigNumber(utxo.amount).gte(BigNumber(amount)))
+  if (selected) {
+    return [selected]
+  }
+}
+
+export const transfer = async (web3, childChain, from, to, amount, contract) => {
   const utxos = await childChain.getUtxos(from)
-  const utxosToSpend = this.selectUtxos(
+  const utxosToSpend = selectUtxos(
     utxos,
     amount,
-    currency,
-    transferZeroFee
+    transaction.ETH_CURRENCY
   )
   if (!utxosToSpend) {
     throw new Error(`No utxo big enough to cover the amount ${amount}`)
@@ -77,7 +83,7 @@ export const transfer = async (web3, childChain, from, to, amount, currency, con
     inputs: utxosToSpend,
     outputs: [{
       owner: to,
-      currency,
+      currency: transaction.ETH_CURRENCY,
       amount: amount.toString()
     }]
   }
@@ -88,17 +94,8 @@ export const transfer = async (web3, childChain, from, to, amount, currency, con
     const CHANGE_AMOUNT = bnAmount.sub(numberToBN(amount))
     txBody.outputs.push({
       owner: from,
-      currency,
+      currency: transaction.ETH_CURRENCY,
       amount: CHANGE_AMOUNT
-    })
-  }
-
-  if (transferZeroFee && utxosToSpend.length > 1) {
-    // The fee input can be returned
-    txBody.outputs.push({
-      owner: from,
-      currency: utxosToSpend[utxosToSpend.length - 1].currency,
-      amount: utxosToSpend[utxosToSpend.length - 1].amount
     })
   }
 
@@ -125,7 +122,7 @@ export const transfer = async (web3, childChain, from, to, amount, currency, con
 
 const signTypedData = (web3, signer, data) => {
   return new Promise((resolve, reject) => {
-    web3.currentProvider.sendAsync(
+    web3.currentProvider.send(
       {
         method: 'eth_signTypedData_v3',
         params: [signer, data],

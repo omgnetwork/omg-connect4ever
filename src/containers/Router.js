@@ -16,7 +16,7 @@ const Router = () => {
         />
         <Route
           exact
-          path='/game/:address'
+          path='/game/:gameaddress'
           component={Game}
         />
         <Route

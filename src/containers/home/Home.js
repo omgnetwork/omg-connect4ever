@@ -38,9 +38,9 @@ const Home = ({ history }) => {
     history.push(`/game/${address}`);
   }
 
-  const depositEth = async () => {
+  const depositEth = () => {
     // TODO: use address with balance, dont assume it's the first one
-    await deposit(network.web3, balances[0].address, 100000000000000000, network.rootChain);
+    deposit(network.web3, balances[0].address, 100000000000000000, network.rootChain);
   }
 
   return (
@@ -71,7 +71,7 @@ const Home = ({ history }) => {
           ))}
 
           <div className={styles.msg}>
-            Please note that after a deposit it can take a while for your Plasma Balance to update, so please be patient.
+            Please note that after a deposit it will take about 90 seconds for your Plasma Balance to update, so please be patient.
           </div>
 
           <Button

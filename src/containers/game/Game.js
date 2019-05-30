@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { get } from 'lodash';
 
+import network from 'util/network';
+import { getTransactions, transfer, getAccounts } from 'util/networkActions';
 import checkWinner from 'util/checkWinner';
 import addCoinToBoard from 'util/addCoinToBoard';
+import getMoveCoordinates from 'util/getMoveCoordinates';
+import config from 'util/config';
 
 import Board from 'components/board/Board';
 
@@ -38,26 +42,29 @@ const DUMMY_TRANSACTIONS = [
 ];
 
 const Game = ({ history, match: { params } }) => {
-  const address = get(params, 'address');
+  const gameAddress = get(params, 'gameaddress');
 
   const [ transactions, setTransactions ] = useState(DUMMY_TRANSACTIONS);
 
   useEffect(() => {
-    getTransactions();
-    const interval = setInterval(getTransactions, POLLING_INTERVAL);
+    getBoardMoves();
+    const interval = setInterval(getBoardMoves, POLLING_INTERVAL);
     return () => clearInterval(interval);
-  }, []);
+  });
 
-  const getTransactions = async () => {
-    console.log('fetching transactions...');
-    
-
-    // fetch real transactions using game address and set in game state
-    // setTransactions(_transactions);
+  const getBoardMoves = async () => {
+    const res = await getTransactions(network.childChain, gameAddress);
+    if (res.length) {
+      console.log(res);
+      // convert transaction metadata into game state
+      // get player turn from transaction data
+      // setTransactions(_transactions);
+    }
   }
 
-
-  const dropCoin = (col) => {
+  const dropCoin = async (col) => {
+    // TODO: build board from transaction data
+    // const currentBoardState = buildBoard(transactions);
     const currentBoardState = transactions.map(i => i.meta)[transactions.length - 1];
     const hasSpace = currentBoardState[col].includes(0);
 
@@ -66,7 +73,7 @@ const Game = ({ history, match: { params } }) => {
       return;
     }
 
-    // TODO: get current player color! R? B?
+    const moveCoordinates = getMoveCoordinates(col, currentBoardState);
     const newBoardState = addCoinToBoard(col, currentBoardState, 'R');
 
     // check if move creates win state
@@ -75,8 +82,18 @@ const Game = ({ history, match: { params } }) => {
       // if it does, make win transaction. display message
       console.log('you won the game!');
     } else {
-      // if it does not, make move transaction. display message
-      console.log('no winner... making transaction...');
+      const accounts = await getAccounts(network.web3);
+      // TODO: don't assume we are using the first account...
+      const res = await transfer(
+        network.web3,
+        network.childChain,
+        accounts[0].address,
+        gameAddress,
+        250000000000,
+        config.PLASMA_CONTRACT_ADDRESS
+      );
+      console.log('res: ', res);
+
       setTransactions([
         ...transactions,
         {

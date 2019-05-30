@@ -6,11 +6,11 @@ import config from './config';
 
 let web3;
 if (window.ethereum) {
-  web3 = new Web3(window.ethereum);
+  web3 = new Web3(window.ethereum, null, { transactionConfirmationBlocks: 1 });
   window.ethereum.enable()
     .catch(e => console.warn(e));
 } else if (window.web3) {
-  web3 = new Web3(window.web3.currentProvider);
+  web3 = new Web3(window.web3.currentProvider, null, { transactionConfirmationBlocks: 1 });
 }
 
 export default {
