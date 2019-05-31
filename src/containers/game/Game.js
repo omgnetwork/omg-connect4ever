@@ -64,8 +64,8 @@ const Game = ({ history, match: { params } }) => {
         setTurn(true);
       }
 
-      const board = buildBoard(moves, accounts[0].address.toLowerCase())
-      setBoard(board);
+      const _board = buildBoard(moves, accounts[0].address.toLowerCase())
+      setBoard(_board);
     }
   }
 
@@ -82,7 +82,8 @@ const Game = ({ history, match: { params } }) => {
     const isWinner = checkWinner(newBoardState, 'B');
     if (isWinner) {
       // TODO: if it does, make win transaction. display message
-      console.log('you won the game!');
+      alert('YOU WON!');
+      history.push('/');
     } else {
       const accounts = await getAccounts(network.web3);
       await transfer(
