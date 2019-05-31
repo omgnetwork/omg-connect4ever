@@ -1,6 +1,7 @@
 import erc20abi from 'human-standard-token-abi';
 import { transaction } from '@omisego/omg-js-util';
-import numberToBN from 'number-to-bn';
+
+// import numberToBN from 'number-to-bn';
 import BigNumber from 'big-number';
 
 export const deposit = async (web3, from, value, rootChain) => {
@@ -68,7 +69,19 @@ export const selectUtxos = (utxos, amount, currency) => {
   }
 }
 
-export const transfer = async (web3, childChain, from, to, amount, contract) => {
+export const getMoveFromTransaction = async (_transaction, childChain) => {
+  const { txhash } = _transaction;
+  const transactionData = await childChain.getTransaction(txhash);
+  const transactionOwner = transactionData.inputs[0].owner;
+  const meta = transaction.decodeMetadata(_transaction.metadata);
+  return {
+    time: transactionData.block.timestamp,
+    owner: transactionOwner,
+    move: JSON.parse(meta)
+  };
+}
+
+export const transfer = async (web3, childChain, from, to, amount, contract, meta) => {
   const utxos = await childChain.getUtxos(from)
   const utxosToSpend = selectUtxos(
     utxos,
@@ -79,44 +92,46 @@ export const transfer = async (web3, childChain, from, to, amount, contract) => 
     throw new Error(`No utxo big enough to cover the amount ${amount}`)
   }
 
-  const txBody = {
-    inputs: utxosToSpend,
-    outputs: [{
-      owner: to,
-      currency: transaction.ETH_CURRENCY,
-      amount: amount.toString()
-    }]
-  }
+  // const txBody = {
+  //   inputs: utxosToSpend,
+  //   outputs: [{
+  //     owner: to,
+  //     currency: transaction.ETH_CURRENCY,
+  //     amount: amount.toString()
+  //   }]
+  // }
 
-  const bnAmount = numberToBN(utxosToSpend[0].amount)
-  if (bnAmount.gt(numberToBN(amount))) {
-    // Need to add a 'change' output
-    const CHANGE_AMOUNT = bnAmount.sub(numberToBN(amount))
-    txBody.outputs.push({
-      owner: from,
-      currency: transaction.ETH_CURRENCY,
-      amount: CHANGE_AMOUNT
-    })
-  }
+  const txBody = transaction.createTransactionBody(
+    from,
+    utxosToSpend,
+    to,
+    amount,
+    transaction.ETH_CURRENCY,
+    transaction.encodeMetadata(JSON.stringify(meta))
+  )
 
-  // Get the transaction data
+  // const bnAmount = numberToBN(utxosToSpend[0].amount)
+  // if (bnAmount.gt(numberToBN(amount))) {
+  //   // Need to add a 'change' output
+  //   const CHANGE_AMOUNT = bnAmount.sub(numberToBN(amount))
+  //   txBody.outputs.push({
+  //     owner: from,
+  //     currency: transaction.ETH_CURRENCY,
+  //     amount: CHANGE_AMOUNT
+  //   })
+  // }
+
   const typedData = transaction.getTypedData(txBody, contract)
-
   // We should really sign each input separately but in this we know that they're all
   // from the same address, so we can sign once and use that signature for each input.
-  //
   // const sigs = await Promise.all(utxosToSpend.map(input => signTypedData(web3, web3.utils.toChecksumAddress(from), typedData)))
-  //
   const signature = await signTypedData(
     web3,
     web3.utils.toChecksumAddress(from),
     JSON.stringify(typedData)
   )
   const sigs = new Array(utxosToSpend.length).fill(signature)
-
-  // Build the signed transaction
   const signedTx = childChain.buildSignedTransaction(typedData, sigs)
-  // Submit the signed transaction to the childchain
   return childChain.submitTransaction(signedTx)
 }
 

@@ -6,7 +6,7 @@ const getMoveCoordinates = (col, board) => {
       break;
     };
   }
-  
+
   return {
     x: Number.parseInt(col.split('col')[1]),
     y: row

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { get } from 'lodash';
 
 import network from 'util/network';
-import { getTransactions, transfer, getAccounts } from 'util/networkActions';
+import { getTransactions, transfer, getAccounts, getMoveFromTransaction } from 'util/networkActions';
 import checkWinner from 'util/checkWinner';
 import addCoinToBoard from 'util/addCoinToBoard';
 import getMoveCoordinates from 'util/getMoveCoordinates';
@@ -12,7 +12,7 @@ import Board from 'components/board/Board';
 
 import * as styles from './Game.module.scss';
 
-const POLLING_INTERVAL = 10000;
+const POLLING_INTERVAL = 5000;
 
 const DUMMY_TRANSACTIONS = [
   {
@@ -55,7 +55,10 @@ const Game = ({ history, match: { params } }) => {
   const getBoardMoves = async () => {
     const res = await getTransactions(network.childChain, gameAddress);
     if (res.length) {
-      console.log(res);
+      const movePromises = res.map(transaction => getMoveFromTransaction(transaction, network.childChain));
+      const moves = await Promise.all(movePromises);
+
+      console.log('moves: ', moves);
       // convert transaction metadata into game state
       // get player turn from transaction data
       // setTransactions(_transactions);
@@ -76,7 +79,6 @@ const Game = ({ history, match: { params } }) => {
     const moveCoordinates = getMoveCoordinates(col, currentBoardState);
     const newBoardState = addCoinToBoard(col, currentBoardState, 'R');
 
-    // check if move creates win state
     const isWinner = checkWinner(newBoardState, 'R');
     if (isWinner) {
       // if it does, make win transaction. display message
@@ -90,9 +92,9 @@ const Game = ({ history, match: { params } }) => {
         accounts[0].address,
         gameAddress,
         250000000000,
-        config.PLASMA_CONTRACT_ADDRESS
+        config.PLASMA_CONTRACT_ADDRESS,
+        moveCoordinates
       );
-      console.log('res: ', res);
 
       setTransactions([
         ...transactions,
