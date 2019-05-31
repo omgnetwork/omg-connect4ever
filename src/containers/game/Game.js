@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { get } from 'lodash';
+import { get, orderBy, cloneDeep } from 'lodash';
+import { produce } from 'immer';
 
 import network from 'util/network';
 import { getTransactions, transfer, getAccounts, getMoveFromTransaction } from 'util/networkActions';
@@ -12,81 +13,79 @@ import Board from 'components/board/Board';
 
 import * as styles from './Game.module.scss';
 
-const POLLING_INTERVAL = 5000;
+const POLLING_INTERVAL = 10000;
 
-const DUMMY_TRANSACTIONS = [
-  {
-    timestamp: Date.now(),
-    meta: {
-      col1: [0, 0, 0, 0, 0, 0],
-      col2: [0, 0, 0, 0, 0, 0],
-      col3: [0, 0, 0, 0, 0, 0],
-      col4: ['R', 0, 0, 0, 0, 0],
-      col5: [0, 0, 0, 0, 0, 0],
-      col6: [0, 0, 0, 0, 0, 0],
-      col7: [0, 0, 0, 0, 0, 0]
-    }
-  },
-  {
-    timestamp: Date.now(),
-    meta: {
-      col1: [0, 0, 0, 0, 0, 0],
-      col2: [0, 0, 0, 0, 0, 0],
-      col3: [0, 0, 0, 0, 0, 0],
-      col4: ['R', 0, 0, 0, 0, 0],
-      col5: [0, 0, 0, 0, 0, 0],
-      col6: ['B', 0, 0, 0, 0, 0],
-      col7: [0, 0, 0, 0, 0, 0]
-    }
-  }
-];
+const INITIAL_BOARD_STATE = {
+  col1: [0, 0, 0, 0, 0, 0],
+  col2: [0, 0, 0, 0, 0, 0],
+  col3: [0, 0, 0, 0, 0, 0],
+  col4: [0, 0, 0, 0, 0, 0],
+  col5: [0, 0, 0, 0, 0, 0],
+  col6: [0, 0, 0, 0, 0, 0],
+  col7: [0, 0, 0, 0, 0, 0]
+};
 
 const Game = ({ history, match: { params } }) => {
   const gameAddress = get(params, 'gameaddress');
 
-  const [ transactions, setTransactions ] = useState(DUMMY_TRANSACTIONS);
+  const [ board, setBoard ] = useState(INITIAL_BOARD_STATE);
+  const [ turn, setTurn ] = useState(true);
 
   useEffect(() => {
     getBoardMoves();
     const interval = setInterval(getBoardMoves, POLLING_INTERVAL);
     return () => clearInterval(interval);
-  });
+  }, []);
+
+  const buildBoard = (moves, currentPlayer) => {
+    const board = cloneDeep(INITIAL_BOARD_STATE);
+    for (let i = 0; i < moves.length; i++) {
+      const player = moves[i].owner.toLowerCase() === currentPlayer ? 'B' : 'R';
+      const { x, y } = moves[i].move;
+      board[`col${x}`] = produce(board[`col${x}`], draft => {
+        draft[y] = player
+      });
+    }
+    return board;
+  }
 
   const getBoardMoves = async () => {
     const res = await getTransactions(network.childChain, gameAddress);
     if (res.length) {
       const movePromises = res.map(transaction => getMoveFromTransaction(transaction, network.childChain));
-      const moves = await Promise.all(movePromises);
+      const _moves = await Promise.all(movePromises);
+      const moves = orderBy(_moves, ['timestamp', 'desc']);
 
-      console.log('moves: ', moves);
-      // convert transaction metadata into game state
-      // get player turn from transaction data
-      // setTransactions(_transactions);
+      const accounts = await getAccounts(network.web3);
+      // check latest move for turn
+      if (moves[0].owner.toLowerCase() === accounts[0].address.toLowerCase()) {
+        setTurn(false);
+      } else {
+        setTurn(true);
+      }
+
+      const board = buildBoard(moves, accounts[0].address.toLowerCase())
+      setBoard(board);
     }
   }
 
   const dropCoin = async (col) => {
-    // TODO: build board from transaction data
-    // const currentBoardState = buildBoard(transactions);
-    const currentBoardState = transactions.map(i => i.meta)[transactions.length - 1];
-    const hasSpace = currentBoardState[col].includes(0);
-
+    const hasSpace = board[col].includes(0);
     if (!hasSpace) {
-      console.warn('invalid move: no space left');
+      alert('This column is full. Pick another one!');
       return;
-    }
+    };
 
-    const moveCoordinates = getMoveCoordinates(col, currentBoardState);
-    const newBoardState = addCoinToBoard(col, currentBoardState, 'R');
+    const moveCoordinates = getMoveCoordinates(col, board);
+    const newBoardState = addCoinToBoard(col, board, 'B');
 
-    const isWinner = checkWinner(newBoardState, 'R');
+    const isWinner = checkWinner(newBoardState, 'B');
     if (isWinner) {
-      // if it does, make win transaction. display message
+      // TODO: if it does, make win transaction. display message
       console.log('you won the game!');
     } else {
       const accounts = await getAccounts(network.web3);
-      // TODO: don't assume we are using the first account...
-      const res = await transfer(
+      await transfer(
         network.web3,
         network.childChain,
         accounts[0].address,
@@ -96,22 +95,20 @@ const Game = ({ history, match: { params } }) => {
         moveCoordinates
       );
 
-      setTransactions([
-        ...transactions,
-        {
-          timestamp: Date.now(),
-          meta: newBoardState
-        }
-      ]);
+      setTurn(false);
+      setBoard(newBoardState);
     }
   }
 
   return (
     <div className={styles.Game}>
       <Board
-        onClick={dropCoin}
-        data={transactions.map(i => i.meta)[transactions.length - 1]}
+        onClick={turn ? dropCoin : () => alert('Its not your turn!')}
+        data={board}
       />
+      <div className={styles.sidebar}>
+        {turn ? 'Its your turn!': 'Please wait for your opponent...'}
+      </div>
     </div>
   )
 }

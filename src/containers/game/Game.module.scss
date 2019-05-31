@@ -1,1 +1,9 @@
 @import 'index.scss';
+
+.Game {
+  display: flex;
+  flex-direction: row;
+  .sidebar {
+    margin: 40px;
+  }
+}
