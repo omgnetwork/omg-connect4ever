@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { get, orderBy, cloneDeep } from 'lodash';
+import React, { useState } from 'react';
+import { get, orderBy, cloneDeep, isEqual } from 'lodash';
 import { produce } from 'immer';
 
 import network from 'util/network';
+import { useInterval } from 'util/useInterval';
 import { getTransactions, transfer, getAccounts, getMoveFromTransaction } from 'util/networkActions';
 import checkWinner from 'util/checkWinner';
 import addCoinToBoard from 'util/addCoinToBoard';
@@ -30,12 +31,7 @@ const Game = ({ history, match: { params } }) => {
 
   const [ board, setBoard ] = useState(INITIAL_BOARD_STATE);
   const [ turn, setTurn ] = useState(true);
-
-  useEffect(() => {
-    getBoardMoves();
-    const interval = setInterval(getBoardMoves, POLLING_INTERVAL);
-    return () => clearInterval(interval);
-  }, []);
+  const [ pending, setPending ] = useState(false);
 
   const buildBoard = (moves, currentPlayer) => {
     const board = cloneDeep(INITIAL_BOARD_STATE);
@@ -49,6 +45,26 @@ const Game = ({ history, match: { params } }) => {
     return board;
   }
 
+  const emptyBoard = (board) => {
+    let isEmpty = true;
+    for (let i = 1; i < Object.keys(board).length; i++) {
+      const values = board[`col${i}`];
+      if (!values.every(i => i === 0)) {
+        isEmpty = false;
+        break;
+      }
+    }
+    return isEmpty;
+  }
+
+  const checkTurn = (moves, accounts) => {
+    if (moves[0].owner.toLowerCase() === accounts[0].address.toLowerCase()) {
+      setTurn(false);
+    } else {
+      setTurn(true);
+    }
+  }
+
   const getBoardMoves = async () => {
     const res = await getTransactions(network.childChain, gameAddress);
     if (res.length) {
@@ -57,15 +73,29 @@ const Game = ({ history, match: { params } }) => {
       const moves = orderBy(_moves, ['timestamp', 'desc']);
 
       const accounts = await getAccounts(network.web3);
-      // check latest move for turn
-      if (moves[0].owner.toLowerCase() === accounts[0].address.toLowerCase()) {
-        setTurn(false);
-      } else {
-        setTurn(true);
+      const _board = buildBoard(moves, accounts[0].address.toLowerCase())
+
+      const isLoser = checkWinner(_board, 'R');
+      if (isLoser) {
+        alert('Sorry! You lost!');
+        history.push('/');
       }
 
-      const _board = buildBoard(moves, accounts[0].address.toLowerCase())
-      setBoard(_board);
+      if (emptyBoard(board)) {
+        setBoard(_board);
+        checkTurn(moves, accounts);
+      } else {
+        if (isEqual(board, _board)) {
+          checkTurn(moves, accounts);
+        } else {
+          if (pending) {
+            setTurn(false);
+          } else {
+            setBoard(_board);
+            checkTurn(moves, accounts);
+          }
+        }
+      }
     }
   }
 
@@ -79,27 +109,30 @@ const Game = ({ history, match: { params } }) => {
     const moveCoordinates = getMoveCoordinates(col, board);
     const newBoardState = addCoinToBoard(col, board, 'B');
 
+    const accounts = await getAccounts(network.web3);
+    await transfer(
+      network.web3,
+      network.childChain,
+      accounts[0].address,
+      gameAddress,
+      250000000000,
+      config.PLASMA_CONTRACT_ADDRESS,
+      moveCoordinates
+    );
+
+    setPending(true);
+    setTurn(false);
+    setBoard(newBoardState);
+
     const isWinner = checkWinner(newBoardState, 'B');
     if (isWinner) {
-      // TODO: if it does, make win transaction. display message
       alert('YOU WON!');
       history.push('/');
-    } else {
-      const accounts = await getAccounts(network.web3);
-      await transfer(
-        network.web3,
-        network.childChain,
-        accounts[0].address,
-        gameAddress,
-        250000000000,
-        config.PLASMA_CONTRACT_ADDRESS,
-        moveCoordinates
-      );
-
-      setTurn(false);
-      setBoard(newBoardState);
     }
   }
+
+  getBoardMoves();
+  useInterval(getBoardMoves, POLLING_INTERVAL);
 
   return (
     <div className={styles.Game}>

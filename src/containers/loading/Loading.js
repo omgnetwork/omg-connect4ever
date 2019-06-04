@@ -5,7 +5,7 @@ import * as styles from './Loading.module.scss';
 const Loading = () => {
   return (
     <div className={styles.Loading}>
-      <img src={'/omg-coin.png'} alt='blue-coin'/>
+      <img src={'/omg-coin.png'} alt='coin'/>
     </div>
   )
 }

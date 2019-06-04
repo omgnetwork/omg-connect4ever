@@ -92,15 +92,6 @@ export const transfer = async (web3, childChain, from, to, amount, contract, met
     throw new Error(`No utxo big enough to cover the amount ${amount}`)
   }
 
-  // const txBody = {
-  //   inputs: utxosToSpend,
-  //   outputs: [{
-  //     owner: to,
-  //     currency: transaction.ETH_CURRENCY,
-  //     amount: amount.toString()
-  //   }]
-  // }
-
   const txBody = transaction.createTransactionBody(
     from,
     utxosToSpend,
@@ -109,17 +100,6 @@ export const transfer = async (web3, childChain, from, to, amount, contract, met
     transaction.ETH_CURRENCY,
     transaction.encodeMetadata(JSON.stringify(meta))
   )
-
-  // const bnAmount = numberToBN(utxosToSpend[0].amount)
-  // if (bnAmount.gt(numberToBN(amount))) {
-  //   // Need to add a 'change' output
-  //   const CHANGE_AMOUNT = bnAmount.sub(numberToBN(amount))
-  //   txBody.outputs.push({
-  //     owner: from,
-  //     currency: transaction.ETH_CURRENCY,
-  //     amount: CHANGE_AMOUNT
-  //   })
-  // }
 
   const typedData = transaction.getTypedData(txBody, contract)
   // We should really sign each input separately but in this we know that they're all

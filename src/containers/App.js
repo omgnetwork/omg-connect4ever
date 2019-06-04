@@ -13,7 +13,9 @@ const App = () => {
     if (!!network.web3) {
       setMetaMask(true);
     }
-    setLoading(false)
+    setTimeout(() => {
+      setLoading(false)
+    }, 1000);
   }, []);
 
   if (!loading && metaMask) return <Router />;
