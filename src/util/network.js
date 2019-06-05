@@ -5,6 +5,9 @@ import Web3 from 'web3';
 import config from './config';
 
 let web3;
+let rootChain;
+let childChain;
+
 if (window.ethereum) {
   web3 = new Web3(window.ethereum, null, { transactionConfirmationBlocks: 1 });
   window.ethereum.enable()
@@ -13,8 +16,13 @@ if (window.ethereum) {
   web3 = new Web3(window.web3.currentProvider, null, { transactionConfirmationBlocks: 1 });
 }
 
+if (web3) {
+  rootChain = new RootChain(web3, config.PLASMA_CONTRACT_ADDRESS);
+  childChain = new ChildChain(config.WATCHER_URL);
+}
+
 export default {
   web3,
-  rootChain: new RootChain(web3, config.PLASMA_CONTRACT_ADDRESS),
-  childChain: new ChildChain(config.WATCHER_URL)
+  rootChain,
+  childChain
 };

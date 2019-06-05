@@ -6,8 +6,9 @@ import * as styles from './NoMetaMask.module.scss';
 const NoMetaMask = ({ history }) => {
   return (
     <div className={styles.NoMetaMask}>
-      <h1>Sorry</h1>
+      <h1>Oops</h1>
       <p>It looks like you don't have MetaMask installed.</p>
+      <p>You need it to play this game.</p>
 
       <a
         href='https://metamask.io/'
