@@ -30,7 +30,6 @@ const Home = ({ history }) => {
     const childAmounts = balances.map(i => i.childBalance.length ? i.childBalance : false)
       .filter(i => !!i);
     if (!!childAmounts.length) setHasSufficientBalance(true);
-    console.log('balances: ', balances);
   }
 
   const createGameAddress = async () => {

@@ -73,29 +73,37 @@ const Game = ({ history, match: { params } }) => {
       const moves = orderBy(_moves, ['timestamp', 'desc']);
 
       const accounts = await getAccounts(network.web3);
-      const _board = buildBoard(moves, accounts[0].address.toLowerCase())
+      const newBoard = buildBoard(moves, accounts[0].address.toLowerCase())
 
-      const isLoser = checkWinner(_board, 'R');
+      const isLoser = checkWinner(newBoard, 'R');
       if (isLoser) {
         alert('Sorry! You lost!');
         history.push('/');
       }
 
       if (emptyBoard(board)) {
-        setBoard(_board);
+        console.log('empty...');
+        setBoard(newBoard);
         checkTurn(moves, accounts);
-      } else {
-        if (isEqual(board, _board)) {
-          checkTurn(moves, accounts);
-        } else {
-          if (pending) {
-            setTurn(false);
-          } else {
-            setBoard(_board);
-            checkTurn(moves, accounts);
-          }
-        }
+        return;
       }
+
+      if (isEqual(board, newBoard)) {
+        console.log('equal...');
+        checkTurn(moves, accounts);
+        return;
+      }
+
+      if (pending) {
+        console.log('pending...');
+        setTurn(false);
+        return;
+      } 
+
+      console.log('final')
+      setBoard(newBoard);
+      checkTurn(moves, accounts);
+      setPending(false);
     }
   }
 
