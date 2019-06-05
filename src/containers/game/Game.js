@@ -73,6 +73,15 @@ const Game = ({ history, match: { params } }) => {
       const moves = orderBy(_moves, ['timestamp', 'desc']);
 
       const accounts = await getAccounts(network.web3);
+
+      if (moves.length >= 2) {
+        const ownerIds = moves.map(i => i.owner.toLowerCase());
+        if (!ownerIds.includes(accounts[0].address.toLowerCase())) {
+          alert('You are not part of this game! We will redirect you to the homepage.');
+          history.push('/');
+        }
+      }
+
       const newBoard = buildBoard(moves, accounts[0].address.toLowerCase())
 
       const isLoser = checkWinner(newBoard, 'R');
@@ -82,25 +91,21 @@ const Game = ({ history, match: { params } }) => {
       }
 
       if (emptyBoard(board)) {
-        console.log('empty...');
         setBoard(newBoard);
         checkTurn(moves, accounts);
         return;
       }
 
       if (isEqual(board, newBoard)) {
-        console.log('equal...');
         checkTurn(moves, accounts);
         return;
       }
 
       if (pending) {
-        console.log('pending...');
         setTurn(false);
         return;
       } 
 
-      console.log('final')
       setBoard(newBoard);
       checkTurn(moves, accounts);
       setPending(false);
@@ -116,8 +121,8 @@ const Game = ({ history, match: { params } }) => {
 
     const moveCoordinates = getMoveCoordinates(col, board);
     const newBoardState = addCoinToBoard(col, board, 'B');
-
     const accounts = await getAccounts(network.web3);
+
     await transfer(
       network.web3,
       network.childChain,
