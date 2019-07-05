@@ -1,5 +1,7 @@
 # OMG-Connect4Ever
-Connect 4 demo
+Connect 4 demo 🔴🔵
+
+http://connect4ever.surge.sh/
 
 ## To Run
 - `$ yarn start` check on localhost:3000
